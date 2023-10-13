@@ -45,7 +45,18 @@ Asegúrate de tener los siguientes requisitos instalados:
      ],
      "configuration_version": "1"
    }
-Reemplaza "YOUR_API_KEY_HERE" con tu clave API personal.
+- Reemplaza "YOUR_API_KEY_HERE" con tu clave API personal de tu proyecto de FIREBASE.
+- Reemplaza "YOUR_API_KEY_HERE" con tu clave API personal obtenida en la página [DJI Developers](https://developer.dji.com/user/apps/#all).
+
+   **APP INFORMATION**
+   - **SDK Type:** Mobile SDK
+   - **App Name:** ucsp_dron
+   - **Software Platform:** Android
+   - **Package Name:** **com.dji.sdk.sample**
+   - **App Key:** 3b22aa_tiene_esta_forma_e8d5c
+   - **Category:** Film shooting
+   - **Description:** Proyecto donde se debe tener el paquete con el nombre "com.dji.sdk.sample" obligatorio para tener las herramientas completas del código y el APP KEY "personal key", el cual debe ser creado únicamente para una cuenta de DJI DEVELOPERS.
+
 
 ## Instrucciones de Ejecución
 1. Clona este repositorio en tu entorno de desarrollo.
