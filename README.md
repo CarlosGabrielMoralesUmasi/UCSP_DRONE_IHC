@@ -1,17 +1,17 @@
-# Proyecto Drone UCSP
+# UCSP Drone Project
 
-Este proyecto es una aplicación Android que integra funcionalidades de DJI SDK para control de drones. Permite interactuar con drones DJI y realizar diversas operaciones de control de vuelo y grabación de datos.
+This project is an Android application that integrates DJI SDK functionalities for drone control. It allows interaction with DJI drones and performs various flight control and data recording operations.
 
-## Requisitos
+## Requirements
 
-Asegúrate de tener los siguientes requisitos instalados:
+Make sure you have the following requirements installed:
 
-1. **Java 11:** Descarga e instala [Java 11](https://docs.aws.amazon.com/corretto/latest/corretto-11-ug/downloads-list.html).
+1. **Java 11:** Download and install [Java 11](https://docs.aws.amazon.com/corretto/latest/corretto-11-ug/downloads-list.html).
 
-2. **Paquetes del Proyecto:**
+2. **Project Packages:**
 
    - **Package Name:** `com.dji.sdk.sample`
-   - **Google Services:** Asegúrate de tener el archivo `google-services.json` configurado para tu proyecto.
+   - **Google Services:** Ensure you have the `google-services.json` file configured for your project.
 
    ```json
    # google-services.json
@@ -45,8 +45,8 @@ Asegúrate de tener los siguientes requisitos instalados:
      ],
      "configuration_version": "1"
    }
-- Reemplaza "YOUR_API_KEY_HERE" con tu clave API personal de tu proyecto de FIREBASE.
-- Reemplaza "YOUR_API_KEY_HERE" con tu clave API personal obtenida en la página [DJI Developers](https://developer.dji.com/user/apps/#all).
+- Replace "YOUR_API_KEY_HERE" with your personal API key from your FIREBASE project.
+- Replace "YOUR_API_KEY_HERE" with your personal API key obtained from the [DJI Developers](https://developer.dji.com/user/apps/#all) page.
 
    **APP INFORMATION**
    - **SDK Type:** Mobile SDK
@@ -55,24 +55,23 @@ Asegúrate de tener los siguientes requisitos instalados:
    - **Package Name:** **com.dji.sdk.sample**
    - **App Key:** 3b22aa_tiene_esta_forma_e8d5c
    - **Category:** Film shooting
-   - **Description:** Proyecto donde se debe tener el paquete con el nombre "com.dji.sdk.sample" obligatorio para tener las herramientas completas del código y el APP KEY "personal key", el cual debe ser creado únicamente para una cuenta de DJI DEVELOPERS.
+   - **Description:** Project where the package with the name "com.dji.sdk.sample" is mandatory to have the complete code tools and the "personal key" APP KEY, which must be created only for a DJI DEVELOPERS account.
 
 
-## Instrucciones de Ejecución
-1. Clona este repositorio en tu entorno de desarrollo.
+## Execution Instructions
+1. Clone this repository to your development environment.
 
-2. Abre el proyecto en Android Studio.
+2. Open the project in Android Studio.
 
-3. Ejecuta la aplicación en un emulador o dispositivo Android.
+3. Run the application on an Android emulator or device.
    
-## NOTAS
-No se recomienda actualizar la versión de Gradle a 8.0 debido a problemas aún desconocidos. Mantén la versión que se especifica en el archivo build.gradle.
+## NOTES
+It is not recommended to update the Gradle version to 8.0 due to unknown issues. Keep the version specified in the build.gradle file.
 
-## Contacto
-Yerson Sanchez Y. (Head del proyecto)
+## Contact
+Yerson Sanchez Y. (Project Head)
 //Carlos Morales U.
 //Cristhian Ocola P.
 //Erick Yari M.
 
-
-Este `README.md` proporciona información sobre el proyecto, requisitos, instrucciones de ejecución y contacto para posibles consultas. Asegúrate de personalizarlo según las necesidades específicas de tu proyecto.
+This `README.md` provides information about the project, requirements, execution instructions, and contact for possible inquiries. Be sure to customize it according to the specific needs of your project.
