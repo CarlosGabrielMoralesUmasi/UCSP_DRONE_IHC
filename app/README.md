@@ -63,6 +63,7 @@ flightController.startTakeoff(new CommonCallbacks.CompletionCallback() {
         DialogUtils.showDialogBasedOnError(getContext(), djiError);
     }
 });
+```
 # Land Function
 
 ## Overview
@@ -97,6 +98,7 @@ flightController.startLanding(new CommonCallbacks.CompletionCallback() {
         }
     }
 });
+```
 ## Considerations
 Both take-off and land functions are essential for safe and precise drone control and are available in the VirtualStickView class. These functions can be customized and extended to meet the specific requirements of your project.
 
