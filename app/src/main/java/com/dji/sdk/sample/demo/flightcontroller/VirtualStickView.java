@@ -2,6 +2,7 @@ package com.dji.sdk.sample.demo.flightcontroller;
 
 import android.app.Service;
 import android.content.Context;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,6 +12,9 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
+
+import java.util.Timer;
+import java.util.TimerTask;
 
 import androidx.annotation.NonNull;
 
@@ -31,6 +35,7 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.logging.Handler;
 
 import dji.common.error.DJIError;
 import dji.common.flightcontroller.simulator.InitializationData;
@@ -42,16 +47,8 @@ import dji.common.flightcontroller.virtualstick.VerticalControlMode;
 import dji.common.flightcontroller.virtualstick.YawControlMode;
 import dji.common.model.LocationCoordinate2D;
 import dji.common.util.CommonCallbacks;
-import dji.keysdk.FlightControllerKey;
-import dji.keysdk.KeyManager;
 import dji.sdk.flightcontroller.FlightController;
 import dji.sdk.flightcontroller.Simulator;
-
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.ValueEventListener;
 
 /**
  * Class for virtual stick.
@@ -67,9 +64,9 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
     private Button btnTakeOff;
     private Button btnLand;
 
+    private Timer timer;
+
     private boolean isAscending = false;
-
-
 
     private TextView textView;
 
@@ -79,7 +76,6 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
     private Timer sendVirtualStickDataTimer;
     private SendVirtualStickDataTask sendVirtualStickDataTask;
 
-    private Timer timer;
     private float pitch;
     private float roll;
     private float yaw;
@@ -129,9 +125,28 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
         initParams();
         initUI();
 
+        //Init Firebase
         FirebaseApp.initializeApp(getContext());
         firebaseRef = FirebaseDatabase.getInstance().getReference("0001");
 
+        timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                FlightControllerFirebase();
+            }
+        }, 0, 3000);
+
+    }
+
+    private void FlightControllerFirebase(){
+        flightController.setVirtualStickModeEnabled(true, new CommonCallbacks.CompletionCallback() {
+            @Override
+            public void onResult(DJIError djiError) {
+                flightController.setVirtualStickAdvancedModeEnabled(true);
+                DialogUtils.showDialogBasedOnError(getContext(), djiError);
+            }
+        });
         firebaseRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -140,98 +155,153 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
                     Long xValue = dataSnapshot.child("x").getValue(Long.class);
                     Long yValue = dataSnapshot.child("y").getValue(Long.class);
                     Long zValue = dataSnapshot.child("z").getValue(Long.class);
-                    Toast.makeText(getContext(), zValue.toString(), Toast.LENGTH_SHORT).show();
 
-                    if(zValue.toString().equals("2"))
-                    {
-                        simulator.start(InitializationData.createInstance(new LocationCoordinate2D(23, 113), 10, 10), new CommonCallbacks.CompletionCallback() {
-                            @Override
-                            public void onResult(DJIError djiError) {
-                                if (djiError != null) {
-                                    ToastUtils.setResultToToast(djiError.getDescription());
-                                }
-                            }
-                        });
-                    }
-                    /////////////////////////////////
-                    if (zValue.toString().equals("1")) {
-                        if (!isAscending) {
-                            flightController.startTakeoff(new CommonCallbacks.CompletionCallback() {
-                                @Override
-                                public void onResult(DJIError djiError) {
-                                    isAscending = true;
-                                }
-                            });
-                            flightController.setVirtualStickModeEnabled(true, new CommonCallbacks.CompletionCallback() {
-                                @Override
-                                public void onResult(DJIError djiError) {
-                                    flightController.setVirtualStickAdvancedModeEnabled(true);
-                                    DialogUtils.showDialogBasedOnError(getContext(), djiError);
-                                }
-                            });
-                        }
-                        else {
-                            float altura = flightController.getState().getAircraftLocation().getAltitude();
-                            // Configura la velocidad de ascenso (ajusta este valor según tus necesidades)
-                            if(altura < 4.0){
-                                float ascentSpeed = 1f; // 1 metro por segundo, ajusta según lo necesario
-                                flightController.sendVirtualStickFlightControlData(
-                                        new FlightControlData(0f, 0, 0, ascentSpeed), // Aumenta la velocidad vertical
-                                        new CommonCallbacks.CompletionCallback() {
-                                            @Override
-                                            public void onResult(DJIError djiError) {
-                                                if (djiError != null) {
-                                                    // Maneja errores
-                                                    DialogUtils.showDialogBasedOnError(getContext(), djiError);
-                                                }
-                                            }
-                                        });
-                            }
-                        }
-                    } else if (zValue.toString().equals("0")){
-                        // Llama a la función de aterrizaje
-                        float altura = flightController.getState().getAircraftLocation().getAltitude();
-                        if(altura < 2.0){
-                            isAscending = false;
-                            flightController.startLanding(new CommonCallbacks.CompletionCallback() {
-                                @Override
-                                public void onResult(DJIError djiError) {
-                                    DialogUtils.showDialogBasedOnError(getContext(), djiError);
-                                    // Detén el ascenso en caso de aterrizaje
-                                }
-                            });
-                        }else{
-                            // Configura la velocidad de ascenso (ajusta este valor según tus necesidades)
-                            float ascentSpeed = -1f; // 1 metro por segundo, ajusta según lo necesario
-                            flightController.sendVirtualStickFlightControlData(
-                                    new FlightControlData(0f, 0, 0, ascentSpeed), // Aumenta la velocidad vertical
-                                    new CommonCallbacks.CompletionCallback() {
-                                        @Override
-                                        public void onResult(DJIError djiError) {
-                                            if (djiError != null) {
-                                                // Maneja errores
-                                                DialogUtils.showDialogBasedOnError(getContext(), djiError);
-                                            }
-                                        }
-                                    });
-                        }
-
-
-                    }
+                    /////////////////////////////////////////////////////////   MOVIMIENTOS Z - SUBIR Y BAJAR    /////////////////////////////////////////////////////////////////////////
+                    Controlz(zValue);
+                    /////////////////////////////////////////////////////////   MOVIMIENTOS X - ADELANTE Y ATRAS    /////////////////////////////////////////////////////////////////////////
+                    Controlx(xValue);
+                    /////////////////////////////////////////////////////////   MOVIMIENTOS X - ADELANTE Y ATRAS    /////////////////////////////////////////////////////////////////////////
+                    Controly(yValue);
                 }
             }
-
-            /////////////////////////////////////////////////////////
 
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
                 Log.e("FirebaseData", "Error al obtener datos de Firebase: " + databaseError.getMessage());
             }
         });
-
-
     }
 
+
+    private void Controlz(Long zValue){
+        if (zValue.toString().equals("1")) {
+            if (!isAscending) {
+                flightController.startTakeoff(new CommonCallbacks.CompletionCallback() {
+                    @Override
+                    public void onResult(DJIError djiError) {
+                        isAscending = true;
+                    }
+                });
+                flightController.setVirtualStickModeEnabled(true, new CommonCallbacks.CompletionCallback() {
+                    @Override
+                    public void onResult(DJIError djiError) {
+                        flightController.setVirtualStickAdvancedModeEnabled(true);
+                        DialogUtils.showDialogBasedOnError(getContext(), djiError);
+                    }
+                });
+            }
+            else {
+                float altura = flightController.getState().getAircraftLocation().getAltitude();
+                // Configura la velocidad de ascenso (ajusta este valor según tus necesidades)
+                if(altura < 4.0){
+                    float ascentSpeed = 2.2f; // 1 metro por segundo, ajusta según lo necesario
+                    flightController.sendVirtualStickFlightControlData(
+                            new FlightControlData(0f, 0, 0, ascentSpeed), // Aumenta la velocidad vertical
+                            new CommonCallbacks.CompletionCallback() {
+                                @Override
+                                public void onResult(DJIError djiError) {
+                                    if (djiError != null) {
+                                        // Maneja errores
+                                        DialogUtils.showDialogBasedOnError(getContext(), djiError);
+                                    }
+                                }
+                            });
+                }
+            }
+        } else if (zValue.toString().equals("0")){
+            // Llama a la función de aterrizaje
+            float altura = flightController.getState().getAircraftLocation().getAltitude();
+            if(altura < 2.0){
+                isAscending = false;
+                flightController.startLanding(new CommonCallbacks.CompletionCallback() {
+                    @Override
+                    public void onResult(DJIError djiError) {
+                        DialogUtils.showDialogBasedOnError(getContext(), djiError);
+                        // Detén el ascenso en caso de aterrizaje
+                    }
+                });
+            }else{
+                // Configura la velocidad de ascenso (ajusta este valor según tus necesidades)
+                float ascentSpeed = -1.8f; // 1 metro por segundo, ajusta según lo necesario
+                flightController.sendVirtualStickFlightControlData(
+                        new FlightControlData(0f, 0, 0, ascentSpeed), // Aumenta la velocidad vertical
+                        new CommonCallbacks.CompletionCallback() {
+                            @Override
+                            public void onResult(DJIError djiError) {
+                                if (djiError != null) {
+                                    // Maneja errores
+                                    DialogUtils.showDialogBasedOnError(getContext(), djiError);
+                                }
+                            }
+                        });
+            }
+
+
+        }
+    }
+
+
+    private void Controlx(Long xValue){
+        if (xValue.toString().equals("1")) {
+            float Speed = 2f;
+            flightController.sendVirtualStickFlightControlData(
+                    new FlightControlData(Speed, 0, 0, 0), // Aumenta la velocidad Horizontal
+                    new CommonCallbacks.CompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            if (djiError != null) {
+                                // Maneja errores
+                                DialogUtils.showDialogBasedOnError(getContext(), djiError);
+                            }
+                        }
+                    });
+        } else if (xValue.toString().equals("0")){
+            float Speed = -1.7f;
+            flightController.sendVirtualStickFlightControlData(
+                    new FlightControlData(Speed, 0, 0, 0), // Aumenta la velocidad Horizontal
+                    new CommonCallbacks.CompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            if (djiError != null) {
+                                // Maneja errores
+                                DialogUtils.showDialogBasedOnError(getContext(), djiError);
+                            }
+                        }
+                    });
+        }
+    }
+
+
+
+    private void Controly(Long yValue){
+        if (yValue.toString().equals("1")) {
+            float Speed = 2f;
+            flightController.sendVirtualStickFlightControlData(
+                    new FlightControlData(0, Speed, 0, 0), // Aumenta la velocidad Horizontal
+                    new CommonCallbacks.CompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            if (djiError != null) {
+                                // Maneja errores
+                                DialogUtils.showDialogBasedOnError(getContext(), djiError);
+                            }
+                        }
+                    });
+        } else if (yValue.toString().equals("0")){
+            float Speed = -1.7f;
+            flightController.sendVirtualStickFlightControlData(
+                    new FlightControlData(0, Speed, 0, 0), // Aumenta la velocidad Horizontal
+                    new CommonCallbacks.CompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            if (djiError != null) {
+                                // Maneja errores
+                                DialogUtils.showDialogBasedOnError(getContext(), djiError);
+                            }
+                        }
+                    });
+        }
+    }
 
     //////////////
 
