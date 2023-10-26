@@ -135,7 +135,7 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
             public void run() {
                 FlightControllerFirebase();
             }
-        }, 0, 3000);
+        }, 0, 100);
 
     }
 
@@ -144,7 +144,6 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
             @Override
             public void onResult(DJIError djiError) {
                 flightController.setVirtualStickAdvancedModeEnabled(true);
-                DialogUtils.showDialogBasedOnError(getContext(), djiError);
             }
         });
         firebaseRef.addValueEventListener(new ValueEventListener() {
@@ -155,6 +154,7 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
                     Long xValue = dataSnapshot.child("x").getValue(Long.class);
                     Long yValue = dataSnapshot.child("y").getValue(Long.class);
                     Long zValue = dataSnapshot.child("z").getValue(Long.class);
+                    Long wValue = dataSnapshot.child("w").getValue(Long.class);
 
                     /////////////////////////////////////////////////////////   MOVIMIENTOS Z - SUBIR Y BAJAR    /////////////////////////////////////////////////////////////////////////
                     Controlz(zValue);
@@ -162,6 +162,8 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
                     Controlx(xValue);
                     /////////////////////////////////////////////////////////   MOVIMIENTOS X - ADELANTE Y ATRAS    /////////////////////////////////////////////////////////////////////////
                     Controly(yValue);
+                    /////////////////////////////////////////////////////////   MOVIMIENTOS w - MOVIMIENTO SOBRE PROPIO EJE    /////////////////////////////////////////////////////////////////////////
+                   // Controlw(wValue);
                 }
             }
 
@@ -186,7 +188,6 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
                     @Override
                     public void onResult(DJIError djiError) {
                         flightController.setVirtualStickAdvancedModeEnabled(true);
-                        DialogUtils.showDialogBasedOnError(getContext(), djiError);
                     }
                 });
             }
@@ -202,13 +203,12 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
                                 public void onResult(DJIError djiError) {
                                     if (djiError != null) {
                                         // Maneja errores
-                                        DialogUtils.showDialogBasedOnError(getContext(), djiError);
                                     }
                                 }
                             });
                 }
             }
-        } else if (zValue.toString().equals("0")){
+        } else if (zValue.toString().equals("-1")){
             // Llama a la función de aterrizaje
             float altura = flightController.getState().getAircraftLocation().getAltitude();
             if(altura < 2.0){
@@ -216,7 +216,6 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
                 flightController.startLanding(new CommonCallbacks.CompletionCallback() {
                     @Override
                     public void onResult(DJIError djiError) {
-                        DialogUtils.showDialogBasedOnError(getContext(), djiError);
                         // Detén el ascenso en caso de aterrizaje
                     }
                 });
@@ -230,7 +229,6 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
                             public void onResult(DJIError djiError) {
                                 if (djiError != null) {
                                     // Maneja errores
-                                    DialogUtils.showDialogBasedOnError(getContext(), djiError);
                                 }
                             }
                         });
@@ -251,11 +249,10 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
                         public void onResult(DJIError djiError) {
                             if (djiError != null) {
                                 // Maneja errores
-                                DialogUtils.showDialogBasedOnError(getContext(), djiError);
                             }
                         }
                     });
-        } else if (xValue.toString().equals("0")){
+        } else if (xValue.toString().equals("-1")){
             float Speed = -1.7f;
             flightController.sendVirtualStickFlightControlData(
                     new FlightControlData(Speed, 0, 0, 0), // Aumenta la velocidad Horizontal
@@ -264,7 +261,6 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
                         public void onResult(DJIError djiError) {
                             if (djiError != null) {
                                 // Maneja errores
-                                DialogUtils.showDialogBasedOnError(getContext(), djiError);
                             }
                         }
                     });
@@ -283,11 +279,10 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
                         public void onResult(DJIError djiError) {
                             if (djiError != null) {
                                 // Maneja errores
-                                DialogUtils.showDialogBasedOnError(getContext(), djiError);
                             }
                         }
                     });
-        } else if (yValue.toString().equals("0")){
+        } else if (yValue.toString().equals("-1")){
             float Speed = -1.7f;
             flightController.sendVirtualStickFlightControlData(
                     new FlightControlData(0, Speed, 0, 0), // Aumenta la velocidad Horizontal
@@ -296,12 +291,40 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
                         public void onResult(DJIError djiError) {
                             if (djiError != null) {
                                 // Maneja errores
-                                DialogUtils.showDialogBasedOnError(getContext(), djiError);
                             }
                         }
                     });
         }
     }
+
+
+    /*private void Controlw(Long wValue){
+        if (wValue.toString().equals("1")) {
+            float Speed = 2f;
+            flightController.sendVirtualStickFlightControlData(
+                    new FlightControlData(0, 0, Speed, 0), // Aumenta la velocidad Horizontal
+                    new CommonCallbacks.CompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            if (djiError != null) {
+                                // Maneja errores
+                            }
+                        }
+                    });
+        } else if (wValue.toString().equals("-1")){
+            float Speed = -1.7f;
+            flightController.sendVirtualStickFlightControlData(
+                    new FlightControlData(0, 0, Speed, 0), // Aumenta la velocidad Horizontal
+                    new CommonCallbacks.CompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            if (djiError != null) {
+                                // Maneja errores
+                            }
+                        }
+                    });
+        }
+    }*/
 
     //////////////
 
@@ -622,4 +645,3 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
     }
 
 }
-
