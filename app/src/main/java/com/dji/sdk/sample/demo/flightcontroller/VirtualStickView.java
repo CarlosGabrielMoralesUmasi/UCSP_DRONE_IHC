@@ -1,5 +1,5 @@
 package com.dji.sdk.sample.demo.flightcontroller;
-
+import android.os.Handler;
 import android.app.Service;
 import android.content.Context;
 import android.os.Looper;
@@ -35,7 +35,6 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.logging.Handler;
 
 import dji.common.error.DJIError;
 import dji.common.flightcontroller.simulator.InitializationData;
@@ -66,6 +65,9 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
 
     private Timer timer;
 
+    private boolean girando1 = false;
+    private boolean girando2 = false;
+
     private boolean isAscending = false;
 
     private TextView textView;
@@ -85,6 +87,13 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
     private Simulator simulator = null;
 
     private DatabaseReference firebaseRef;
+
+    private boolean cuadradoCompletado = false;
+
+    Handler handler = new Handler();
+    int tiempoTranscurrido = 0;
+    int tiempoTranscurrido2 = 0;
+
 
     public VirtualStickView(Context context) {
         super(context);
@@ -129,6 +138,8 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
         FirebaseApp.initializeApp(getContext());
         firebaseRef = FirebaseDatabase.getInstance().getReference("0001");
 
+        ControlcuadradoFirebase();
+
         timer = new Timer();
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -137,6 +148,34 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
             }
         }, 0, 100);
 
+
+
+
+    }
+
+    private void ControlcuadradoFirebase(){
+        flightController.setVirtualStickModeEnabled(true, new CommonCallbacks.CompletionCallback() {
+            @Override
+            public void onResult(DJIError djiError) {
+                flightController.setVirtualStickAdvancedModeEnabled(true);
+            }
+        });
+        firebaseRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                // Verifica si los datos existen
+                if (dataSnapshot.exists()) {
+                    Long cuadradoValue = dataSnapshot.child("cuadrado").getValue(Long.class);
+                    Controlcuadrado(cuadradoValue);
+
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
     }
 
     private void FlightControllerFirebase(){
@@ -154,7 +193,7 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
                     Long xValue = dataSnapshot.child("x").getValue(Long.class);
                     Long yValue = dataSnapshot.child("y").getValue(Long.class);
                     Long zValue = dataSnapshot.child("z").getValue(Long.class);
-                    Long wValue = dataSnapshot.child("w").getValue(Long.class);
+                    Long Girovalue = dataSnapshot.child("giro").getValue(Long.class);
 
                     /////////////////////////////////////////////////////////   MOVIMIENTOS Z - SUBIR Y BAJAR    /////////////////////////////////////////////////////////////////////////
                     Controlz(zValue);
@@ -162,14 +201,14 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
                     Controlx(xValue);
                     /////////////////////////////////////////////////////////   MOVIMIENTOS X - ADELANTE Y ATRAS    /////////////////////////////////////////////////////////////////////////
                     Controly(yValue);
-                    /////////////////////////////////////////////////////////   MOVIMIENTOS w - MOVIMIENTO SOBRE PROPIO EJE    /////////////////////////////////////////////////////////////////////////
-                   // Controlw(wValue);
+                    /////////////////////////////////////////////////////////   MOVIMIENTO en Giro -     /////////////////////////////////////////////////////////////////////////
+                    ControlGiro(Girovalue);
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
-                Log.e("FirebaseData", "Error al obtener datos de Firebase: " + databaseError.getMessage());
+
             }
         });
     }
@@ -194,8 +233,8 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
             else {
                 float altura = flightController.getState().getAircraftLocation().getAltitude();
                 // Configura la velocidad de ascenso (ajusta este valor según tus necesidades)
-                if(altura < 4.0){
-                    float ascentSpeed = 2.2f; // 1 metro por segundo, ajusta según lo necesario
+                if(altura < 1.0){
+                    float ascentSpeed = 0.05f; // 1 metro por segundo, ajusta según lo necesario
                     flightController.sendVirtualStickFlightControlData(
                             new FlightControlData(0f, 0, 0, ascentSpeed), // Aumenta la velocidad vertical
                             new CommonCallbacks.CompletionCallback() {
@@ -221,7 +260,7 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
                 });
             }else{
                 // Configura la velocidad de ascenso (ajusta este valor según tus necesidades)
-                float ascentSpeed = -1.8f; // 1 metro por segundo, ajusta según lo necesario
+                float ascentSpeed = -0.05f; // 1 metro por segundo, ajusta según lo necesario
                 flightController.sendVirtualStickFlightControlData(
                         new FlightControlData(0f, 0, 0, ascentSpeed), // Aumenta la velocidad vertical
                         new CommonCallbacks.CompletionCallback() {
@@ -240,8 +279,8 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
 
 
     private void Controlx(Long xValue){
-        if (xValue.toString().equals("1")) {
-            float Speed = 2f;
+        if (xValue > 0) {
+            float Speed = 0.05f* xValue;
             flightController.sendVirtualStickFlightControlData(
                     new FlightControlData(Speed, 0, 0, 0), // Aumenta la velocidad Horizontal
                     new CommonCallbacks.CompletionCallback() {
@@ -252,8 +291,8 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
                             }
                         }
                     });
-        } else if (xValue.toString().equals("-1")){
-            float Speed = -1.7f;
+        } else if (xValue < 0){
+            float Speed = 0.05f * xValue;
             flightController.sendVirtualStickFlightControlData(
                     new FlightControlData(Speed, 0, 0, 0), // Aumenta la velocidad Horizontal
                     new CommonCallbacks.CompletionCallback() {
@@ -270,8 +309,8 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
 
 
     private void Controly(Long yValue){
-        if (yValue.toString().equals("1")) {
-            float Speed = 2f;
+        if (yValue > 0) {
+            float Speed = 0.05f * yValue;
             flightController.sendVirtualStickFlightControlData(
                     new FlightControlData(0, Speed, 0, 0), // Aumenta la velocidad Horizontal
                     new CommonCallbacks.CompletionCallback() {
@@ -282,8 +321,8 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
                             }
                         }
                     });
-        } else if (yValue.toString().equals("-1")){
-            float Speed = -1.7f;
+        } else if (yValue < 0){
+            float Speed = 0.05f * yValue;
             flightController.sendVirtualStickFlightControlData(
                     new FlightControlData(0, Speed, 0, 0), // Aumenta la velocidad Horizontal
                     new CommonCallbacks.CompletionCallback() {
@@ -298,33 +337,216 @@ public class VirtualStickView extends RelativeLayout implements View.OnClickList
     }
 
 
-    /*private void Controlw(Long wValue){
-        if (wValue.toString().equals("1")) {
-            float Speed = 2f;
-            flightController.sendVirtualStickFlightControlData(
-                    new FlightControlData(0, 0, Speed, 0), // Aumenta la velocidad Horizontal
-                    new CommonCallbacks.CompletionCallback() {
-                        @Override
-                        public void onResult(DJIError djiError) {
-                            if (djiError != null) {
-                                // Maneja errores
+    private void ControlGiro(Long GiroValue){
+        if (GiroValue.toString().equals("1")) {
+            if(girando2 == true){
+                flightController.sendVirtualStickFlightControlData(
+                        new FlightControlData(0, 0, 0, 0),
+                        new CommonCallbacks.CompletionCallback() {
+                            @Override
+                            public void onResult(DJIError djiError) {
+                                if (djiError != null) {
+                                    // Maneja errores
+                                }
                             }
-                        }
-                    });
-        } else if (wValue.toString().equals("-1")){
-            float Speed = -1.7f;
+                        });
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                girando2 = false;
+            }
+            float Speed = GiroValue * 10f;
             flightController.sendVirtualStickFlightControlData(
-                    new FlightControlData(0, 0, Speed, 0), // Aumenta la velocidad Horizontal
+                    new FlightControlData(0, 0, Speed, 0),
                     new CommonCallbacks.CompletionCallback() {
                         @Override
                         public void onResult(DJIError djiError) {
+                            girando1 = true;
                             if (djiError != null) {
                                 // Maneja errores
                             }
                         }
                     });
         }
-    }*/
+
+        else if (GiroValue.toString().equals("-1")){
+            if(girando1 == true){
+                flightController.sendVirtualStickFlightControlData(
+                        new FlightControlData(0, 0, 0, 0),
+                        new CommonCallbacks.CompletionCallback() {
+                            @Override
+                            public void onResult(DJIError djiError) {
+                                if (djiError != null) {
+                                    // Maneja errores
+                                }
+                            }
+                        });
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                girando1 = false;
+            }
+            float Speed = GiroValue * 10f;
+            flightController.sendVirtualStickFlightControlData(
+                    new FlightControlData(0, 0, Speed, 0),
+                    new CommonCallbacks.CompletionCallback() {
+                        @Override
+                        public void onResult(DJIError djiError) {
+                            girando2 = true;
+                            if (djiError != null) {
+                                // Maneja errores
+                            }
+                        }
+                    });
+        }
+    }
+
+    private void Controlcuadrado(Long cuadradoValue) {
+        if (!cuadradoCompletado && cuadradoValue > 0) {
+            // Mientras el cuadrado no esté completado y cuadradoValue sea positivo, realizar movimientos para formar el cuadrado
+            // Primer movimiento hacia adelante durante 7 segundos
+            long startTime1 = System.currentTimeMillis();
+            while (System.currentTimeMillis() - startTime1 < 10000) {
+                // Mover hacia adelante
+                Controly(-1L);
+                try {
+                    Thread.sleep(1); // Pequeña pausa para no saturar el procesador
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+
+            try {
+                Thread.sleep(10); // Pequeña pausa para no saturar el procesador
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            // Segundo movimiento (giro) durante 3 segundos
+            long startTime2 = System.currentTimeMillis();
+            while (System.currentTimeMillis() - startTime2 < 9000) {
+                // Realizar giro
+                ControlGiro(1L);
+                try {
+                    Thread.sleep(1); // Pequeña pausa para no saturar el procesador
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            try {
+                Thread.sleep(10); // Pequeña pausa para no saturar el procesador
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+
+            startTime1 = System.currentTimeMillis();
+            while (System.currentTimeMillis() - startTime1 < 10000) {
+                // Mover hacia adelante
+                Controly(-1L);
+                try {
+                    Thread.sleep(1); // Pequeña pausa para no saturar el procesador
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            try {
+                Thread.sleep(10); // Pequeña pausa para no saturar el procesador
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            // Segundo movimiento (giro) durante 3 segundos
+            startTime2 = System.currentTimeMillis();
+            while (System.currentTimeMillis() - startTime2 < 9000) {
+                // Realizar giro
+                ControlGiro(1L);
+                try {
+                    Thread.sleep(1); // Pequeña pausa para no saturar el procesador
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            try {
+                Thread.sleep(10); // Pequeña pausa para no saturar el procesador
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            startTime1 = System.currentTimeMillis();
+            while (System.currentTimeMillis() - startTime1 < 10000) {
+                // Mover hacia adelante
+                Controly(-1L);
+                try {
+                    Thread.sleep(1); // Pequeña pausa para no saturar el procesador
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+
+            try {
+                Thread.sleep(10); // Pequeña pausa para no saturar el procesador
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            // Segundo movimiento (giro) durante 3 segundos
+            startTime2 = System.currentTimeMillis();
+            while (System.currentTimeMillis() - startTime2 < 9000) {
+                // Realizar giro
+                ControlGiro(1L);
+                try {
+                    Thread.sleep(1); // Pequeña pausa para no saturar el procesador
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            try {
+                Thread.sleep(10); // Pequeña pausa para no saturar el procesador
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            startTime1 = System.currentTimeMillis();
+            while (System.currentTimeMillis() - startTime1 < 10000) {
+                // Mover hacia adelante
+                Controly(-1L);
+                try {
+                    Thread.sleep(1); // Pequeña pausa para no saturar el procesador
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            try {
+                Thread.sleep(10); // Pequeña pausa para no saturar el procesador
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+
+            // Se establece que el cuadrado está completado
+            cuadradoCompletado = true;
+
+            // Mensaje de fin
+            ToastUtils.setResultToToast("Fin");
+            firebaseRef.child("cuadrado").setValue(0L);
+
+        }
+    }
+
+
+
 
     //////////////
 
